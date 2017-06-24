@@ -1,0 +1,36 @@
+.margin {
+  margin-top: 5%;
+  margin-bottom: 5%;
+}
+.container {
+  max-width: 1366px;
+}
+/* Typography */
+body {
+  font-family: 'Noto Sans TC', monospace;
+  color: rgba(0, 0, 0, 0.8);
+  font-weight: 12;
+  overflow-x: hidden;
+}
+a {
+  color: rgba(30, 174, 219, 0.8);
+}
+h1 {
+  font-weight: 18;
+}
+@media (min-width: 550px) {
+  body {
+    font-size: 1em;
+  }
+  h1 {
+    font-size: 1.25em;
+  }
+}
+@media (min-width: 750px) {
+  body {
+    font-size: 1.25em;
+  }
+  h1 {
+    font-size: 1.5em;
+  }
+}
