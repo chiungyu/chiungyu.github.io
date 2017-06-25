@@ -1,6 +1,6 @@
 # chiungyu.github.io
-My single-page website in Chinese.
-
+My simple website, primarily in Chinese.
+Hosted at https://ccylin.com
 
 
 ### Inspiration
