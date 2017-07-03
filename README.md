@@ -1,6 +1,6 @@
 # chiungyu.github.io
-My simple website, primarily in Chinese.
-Hosted at http://ccylin.com
+My simple website.
+Hosted at http://ccylin.com/ (in Chinese) and http://ccylin.com/en/ (in English).
 
 
 ### Inspiration
