@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoJSON Combiner - EUDR</title>
+    <script src="wasm_exec.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.6s ease-out;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .lang-switch {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+        }
+
+        select.lang-select {
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            padding: 0.5rem;
+            border-radius: 8px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            font-size: 1.1rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1.5rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-area {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .status-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid transparent;
+        }
+
+        .status-card.success {
+            border-left-color: var(--success);
+        }
+
+        .status-card.error {
+            border-left-color: var(--error);
+        }
+
+        .status-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .status-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .success .status-title {
+            color: var(--success);
+        }
+
+        .error .status-title {
+            color: var(--error);
+        }
+
+        .warning .status-title {
+            color: var(--warning);
+        }
+
+        .status-list {
+            list-style: none;
+            margin-top: 0.5rem;
+        }
+
+        .status-list li {
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="lang-switch">
+            <select id="langSelect" class="lang-select">
+                <option value="en">English</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="zh-CN">简体中文</option>
+                <option value="vi">Tiếng Việt</option>
+            </select>
+        </div>
+
+        <h1 data-i18n="title">GeoJSON Combiner</h1>
+        <p class="subtitle" data-i18n="subtitle">EUDR Compliant &bull; Secure Client-Side Processing</p>
+
+        <div class="upload-area" id="dropZone">
+            <div class="upload-icon">📂</div>
+            <div class="upload-text" data-i18n="dragDrop">Drag & Drop GeoJSON files here</div>
+            <div class="upload-subtext" data-i18n="orBrowse">or click to browse</div>
+            <input type="file" id="fileInput" multiple accept=".geojson,.json">
+        </div>
+
+        <div id="processingStatus" class="status-area" style="text-align: center; color: var(--text-muted);">
+            <div class="loader"></div> <span data-i18n="processing">Processing files...</span>
+        </div>
+
+        <div id="resultsArea" class="status-area">
+            <!-- Dynamic Content -->
+        </div>
+    </div>
+
+    <script>
+        // UI Translations
+        const uiTranslations = {
+            "en": {
+                "title": "GeoJSON Combiner",
+                "subtitle": "EUDR Compliant &bull; Secure Client-Side Processing",
+                "dragDrop": "Drag & Drop GeoJSON files here",
+                "orBrowse": "or click to browse",
+                "processing": "Processing files...",
+                "processingFailed": "❌ Processing Failed",
+                "warnings": "⚠️ Warnings",
+                "success": "✅ Combination Successful",
+                "files": "Files",
+                "features": "Features",
+                "duplicates": "Duplicates Removed",
+                "downloadStarted": "Download started automatically."
+            },
+            "zh-TW": {
+                "title": "GeoJSON 合併工具",
+                "subtitle": "符合 EUDR 標準 &bull; 安全的客戶端處理",
+                "dragDrop": "拖放 GeoJSON 檔案至此",
+                "orBrowse": "或點擊瀏覽",
+                "processing": "正在處理檔案...",
+                "processingFailed": "❌ 處理失敗",
+                "warnings": "⚠️ 警告",
+                "success": "✅ 合併成功",
+                "files": "檔案",
+                "features": "特徵",
+                "duplicates": "已移除重複",
+                "downloadStarted": "下載已自動開始。"
+            },
+            "zh-CN": {
+                "title": "GeoJSON 合并工具",
+                "subtitle": "符合 EUDR 标准 &bull; 安全的客户端处理",
+                "dragDrop": "拖放 GeoJSON 文件至此",
+                "orBrowse": "或点击浏览",
+                "processing": "正在处理文件...",
+                "processingFailed": "❌ 处理失败",
+                "warnings": "⚠️ 警告",
+                "success": "✅ 合并成功",
+                "files": "文件",
+                "features": "特征",
+                "duplicates": "已移除重复",
+                "downloadStarted": "下载已自动开始。"
+            },
+            "vi": {
+                "title": "Công cụ kết hợp GeoJSON",
+                "subtitle": "Tuân thủ EUDR &bull; Xử lý phía máy khách an toàn",
+                "dragDrop": "Kéo và thả tệp GeoJSON vào đây",
+                "orBrowse": "hoặc nhấp để duyệt",
+                "processing": "Đang xử lý tệp...",
+                "processingFailed": "❌ Xử lý thất bại",
+                "warnings": "⚠️ Cảnh báo",
+                "success": "✅ Kết hợp thành công",
+                "files": "Tệp",
+                "features": "Đối tượng",
+                "duplicates": "Đã xóa trùng lặp",
+                "downloadStarted": "Tải xuống đã tự động bắt đầu."
+            }
+        };
+
+        let currentLang = "en";
+
+        // WASM Initialization
+        const go = new Go();
+        let wasmReady = false;
+
+        WebAssembly.instantiateStreaming(fetch("combine_geojson.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+            wasmReady = true;
+            console.log("WASM Loaded");
+        }).catch((err) => {
+            console.error("WASM Load Failed:", err);
+            alert("Failed to load WASM backend. Please ensure you are running this on a web server (not file://).");
+        });
+
+        // UI Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const processingStatus = document.getElementById('processingStatus');
+        const resultsArea = document.getElementById('resultsArea');
+        const langSelect = document.getElementById('langSelect');
+
+        // Language Switcher
+        langSelect.addEventListener('change', (e) => {
+            currentLang = e.target.value;
+            updateUILanguage(currentLang);
+        });
+
+        function updateUILanguage(lang) {
+            const t = uiTranslations[lang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) {
+                    el.innerHTML = t[key];
+                }
+            });
+            // Clear results on language change to avoid mixed language state
+            resultsArea.style.display = 'none';
+            resultsArea.innerHTML = '';
+        }
+
+        // Drag & Drop Handlers
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (fileInput.files.length > 0) {
+                handleFiles(fileInput.files);
+            }
+        });
+
+        async function handleFiles(fileList) {
+            if (!wasmReady) {
+                alert("System is still initializing. Please wait a moment.");
+                return;
+            }
+
+            resultsArea.style.display = 'none';
+            processingStatus.style.display = 'block';
+            resultsArea.innerHTML = '';
+
+            const filesData = [];
+            const errors = [];
+
+            try {
+                for (const file of fileList) {
+                    try {
+                        const content = await readFile(file);
+                        filesData.push({
+                            name: file.name,
+                            content: content
+                        });
+                    } catch (err) {
+                        errors.push(`Failed to read file '${file.name}': ${err.message}`);
+                    }
+                }
+
+                if (errors.length > 0) {
+                    showErrors(errors);
+                    processingStatus.style.display = 'none';
+                    return;
+                }
+
+                // Call WASM with language argument
+                const inputJson = JSON.stringify(filesData);
+                const resultJson = combineGeoJSON(inputJson, currentLang);
+                const result = JSON.parse(resultJson);
+
+                processingStatus.style.display = 'none';
+                resultsArea.style.display = 'block';
+
+                if (result.success) {
+                    showSuccess(result);
+                    downloadFile(result.data);
+                } else {
+                    showErrors(result.errors);
+                }
+
+            } catch (err) {
+                console.error(err);
+                processingStatus.style.display = 'none';
+                showErrors([`Unexpected system error: ${err.message}`]);
+            }
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        function showErrors(errors) {
+            const t = uiTranslations[currentLang];
+            resultsArea.style.display = 'block';
+            const html = `
+                <div class="status-card error">
+                    <div class="status-title">${t.processingFailed}</div>
+                    <ul class="status-list">
+                        ${errors.map(e => `<li>${e}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            resultsArea.innerHTML = html;
+        }
+
+        function showSuccess(result) {
+            const t = uiTranslations[currentLang];
+            let warningsHtml = '';
+            if (result.warnings && result.warnings.length > 0) {
+                warningsHtml = `
+                    <div class="status-card warning">
+                        <div class="status-title">${t.warnings}</div>
+                        <ul class="status-list">
+                            ${result.warnings.map(w => `<li>${w}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            const html = `
+                <div class="status-card success">
+                    <div class="status-title">${t.success}</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">${result.stats.filesProcessed}</div>
+                            <div class="stat-label">${t.files}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${result.stats.featuresProcessed}</div>
+                            <div class="stat-label">${t.features}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${result.stats.duplicatesRemoved}</div>
+                            <div class="stat-label">${t.duplicates}</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+                        ${t.downloadStarted}
+                    </p>
+                </div>
+                ${warningsHtml}
+            `;
+            resultsArea.innerHTML = html;
+        }
+
+        function downloadFile(data) {
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/geo+json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "combined_eudr.geojson";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
